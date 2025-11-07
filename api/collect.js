@@ -137,6 +137,65 @@ function isPressRelease(title, summary, source) {
   ];
   return pressReleaseKeywords.some(keyword => text.includes(keyword));
 }
+
+// Normalize text for similarity comparison
+function normalizeText(text) {
+  const stopWords = ['the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from', 'as', 'is', 'was', 'are', 'were', 'been', 'be', 'has', 'have', 'had', 'will', 'would', 'could', 'should', 'may', 'might', 'must', 'can'];
+
+  return text
+    .toLowerCase()
+    .replace(/[^\w\s]/g, ' ')
+    .split(/\s+/)
+    .filter(word => word.length > 3 && !stopWords.includes(word))
+    .join(' ');
+}
+
+// Calculate similarity between two texts
+function textSimilarity(text1, text2) {
+  const words1 = new Set(text1.split(' '));
+  const words2 = new Set(text2.split(' '));
+
+  const intersection = new Set([...words1].filter(x => words2.has(x)));
+  const union = new Set([...words1, ...words2]);
+
+  return intersection.size / union.size;
+}
+
+// Check if a similar story already exists
+async function isDuplicateStory(title, summary, origin) {
+  try {
+    const normalizedContent = normalizeText(`${title} ${summary}`);
+
+    // Get articles from the last 48 hours for this entity
+    const twoDaysAgo = Math.floor(Date.now() / 1000) - (48 * 60 * 60);
+    const recentArticles = await redis.zrange(ZSET, twoDaysAgo, '+inf', { byScore: true });
+
+    for (const articleJson of recentArticles) {
+      try {
+        const article = JSON.parse(articleJson);
+
+        // Only compare within the same entity
+        if (article.origin !== origin) continue;
+
+        const existingContent = normalizeText(`${article.title} ${article.summary || ''}`);
+        const similarity = textSimilarity(normalizedContent, existingContent);
+
+        // If 60% or more of key words match, consider it a duplicate story
+        if (similarity >= 0.6) {
+          console.log(`Duplicate story detected: "${title}" similar to "${article.title}" (${Math.round(similarity * 100)}% match)`);
+          return true;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+
+    return false;
+  } catch (error) {
+    console.error('Error checking duplicate story:', error);
+    return false;
+  }
+}
 const ENABLE_SENTIMENT = (process.env.ENABLE_SENTIMENT || "").toLowerCase() === "true";
 const POS = ["win","surge","rally","gain","positive","bull","record","secure","approve","partnership"];
 const NEG = ["hack","breach","lawsuit","fine","down","drop","negative","bear","investigate","halt","outage","delay","ban"];
@@ -287,6 +346,13 @@ export default async function handler(req, res) {
           // Apply entity-specific filters
           if (shouldFilterArticle(origin, title, sum)) {
             console.log(`Skipping filtered article for ${origin}: "${title}"`);
+            continue;
+          }
+
+          // Check for duplicate stories (same story from different sources)
+          if (await isDuplicateStory(title, sum, origin)) {
+            console.log(`Skipping duplicate story for ${origin}: "${title}"`);
+            found++; // Count it as found but don't store
             continue;
           }
 
