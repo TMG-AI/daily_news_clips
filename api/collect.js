@@ -311,13 +311,23 @@ export default async function handler(req, res) {
     // No keyword filtering - RSS feeds are entity-specific
     console.log(`RSS collection starting: ${ALL_FEEDS.length} feeds (${Object.keys(ENTITY_FEEDS).filter(k => ENTITY_FEEDS[k]).length} entities), no keyword filtering`);
 
-    for (const feedConfig of ALL_FEEDS) {
-      const { url, origin, section } = feedConfig;
-      try {
-        const feed = await parser.parseURL(url);
-        const feedTitle = feed?.title || url;
+    // Process feeds in parallel batches of 10 to avoid timeout
+    const BATCH_SIZE = 10;
+    const batches = [];
+    for (let i = 0; i < ALL_FEEDS.length; i += BATCH_SIZE) {
+      batches.push(ALL_FEEDS.slice(i, i + BATCH_SIZE));
+    }
 
-        for (const e of feed?.items || []) {
+    console.log(`Processing ${ALL_FEEDS.length} feeds in ${batches.length} batches of ${BATCH_SIZE}`);
+
+    for (const batch of batches) {
+      const batchPromises = batch.map(async (feedConfig) => {
+        const { url, origin, section } = feedConfig;
+        try {
+          const feed = await parser.parseURL(url);
+          const feedTitle = feed?.title || url;
+
+          for (const e of feed?.items || []) {
           const title = (e.title || "").trim();
           const ytDesc = e.mediaDescription || e?.media?.description || e?.mediaContent?.description || "";
           const sum = ytDesc || e.contentSnippet || e.content || e.summary || "";
@@ -389,10 +399,15 @@ export default async function handler(req, res) {
 
           found++; stored++;
         }
-      } catch (err) {
-        errors.push({ url, error: err?.message || String(err) });
-      }
+        } catch (err) {
+          errors.push({ url, error: err?.message || String(err) });
+        }
+      });
+
+      // Wait for all feeds in this batch to complete
+      await Promise.allSettled(batchPromises);
     }
+
     res.status(200).json({ ok:true, feeds: ALL_FEEDS.length, found, stored, emailed, errors, entities_configured: Object.keys(ENTITY_FEEDS).filter(k => ENTITY_FEEDS[k]).length });
   } catch (e) {
     res.status(500).json({ ok:false, error:`collect failed: ${e?.message || e}` });
