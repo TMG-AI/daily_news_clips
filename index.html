@@ -232,10 +232,15 @@
 
   <!-- Summary Bar (24 Hours) -->
   <div class="summary-section">
-    <div class="summary-grid" style="grid-template-columns:repeat(3,1fr)">
+    <div class="summary-grid" style="grid-template-columns:repeat(4,1fr)">
       <div class="summary-item active" data-filter="all" onclick="filterByEntity('all')">
         <div class="summary-label">Total Articles</div>
         <div class="summary-value" id="sb-total">—</div>
+        <div style="font-size:10px;color:#999;margin-top:2px">Past 24 Hours</div>
+      </div>
+      <div class="summary-item" data-filter="clients" onclick="filterByEntity('clients')">
+        <div class="summary-label">Clients</div>
+        <div class="summary-value" id="sb-clients">—</div>
         <div style="font-size:10px;color:#999;margin-top:2px">Past 24 Hours</div>
       </div>
       <div class="summary-item" data-filter="top_news" onclick="filterByEntity('top_news')">
@@ -262,11 +267,11 @@
       <textarea
         id="chat-input"
         class="chat-input"
-        placeholder="Ask questions, paste full article for client summary, or click 'Summarize Weekly Articles'..."
+        placeholder="Ask questions, paste full article for client summary, or click 'Summarize Articles'..."
       ></textarea>
       <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
         <button id="chat-button" class="chat-button" onclick="askAI()" style="flex:1;min-width:150px">Ask AI</button>
-        <button id="summarize-button" class="chat-button" onclick="summarizeWeekly()" style="flex:1;background:#5a7c50;min-width:150px">Summarize Weekly Articles</button>
+        <button id="summarize-button" class="chat-button" onclick="summarizeWeekly()" style="flex:1;background:#5a7c50;min-width:150px">Summarize Articles</button>
         <button id="summarize-selected-button" class="chat-button" onclick="summarizeSelected()" style="flex:1;background:#8b7c50;min-width:150px;display:none" title="Summarize selected articles">Summarize Selected (<span id="selected-count">0</span>)</button>
         <button id="client-summary-button" class="chat-button" onclick="generateClientSummary()" style="flex:1;background:#6b8e5f;min-width:150px">Digest Summary</button>
         <button id="clear-chat-button" class="chat-button" onclick="clearChat()" style="background:#999;min-width:120px" title="Clear the chat history">Clear Chat</button>
@@ -417,6 +422,23 @@
           // Check if article is selected for summary
           const isSelected = selectedArticles.has(article.id);
 
+          // Format client name from origin
+          const formatClientName = (origin) => {
+            if (!origin) return '';
+            // Remove _rss suffix and convert underscores to spaces, then title case
+            return origin
+              .replace(/_rss$/, '')
+              .replace(/_/g, ' ')
+              .replace(/\b\w/g, c => c.toUpperCase());
+          };
+
+          // Determine if this is a client feed
+          const topNewsOrigins = ['nyt_top_news_rss', 'wapo_national_news_rss', 'wapo_politics_rss'];
+          const localNewsOrigins = ['wapo_local_rss'];
+          const origin = (article.origin || "").toLowerCase();
+          const isClientFeed = !topNewsOrigins.includes(origin) && !localNewsOrigins.includes(origin) && origin;
+          const clientName = isClientFeed ? formatClientName(article.origin) : '';
+
           // Create card structure
           div.innerHTML=`
             <div class="card-content">
@@ -431,7 +453,7 @@
                 <h3 class="card-title" style="flex:1;margin:0"><a href="${article.link}" target="_blank" rel="noopener"></a></h3>
               </div>
               <div class="meta">
-                <div>${article.source || article.provider || 'Newsletter'} · ${formatDate(article.published)}</div>
+                <div>${article.source || article.provider || 'Newsletter'} · ${formatDate(article.published)}${clientName ? ` · <strong style="color:#4a6741">${clientName}</strong>` : ''}</div>
               </div>
               ${summary}
             </div>`;
@@ -512,6 +534,12 @@
         } else if (currentFilter === 'local_news') {
           const localNewsOrigins = ['wapo_local_rss'];
           filtered = filtered.filter(m => localNewsOrigins.includes((m.origin || "").toLowerCase()));
+        } else if (currentFilter === 'clients') {
+          // Filter for client feeds (everything except top news and local news)
+          const topNewsOrigins = ['nyt_top_news_rss', 'wapo_national_news_rss', 'wapo_politics_rss'];
+          const localNewsOrigins = ['wapo_local_rss'];
+          const allGeneralNews = [...topNewsOrigins, ...localNewsOrigins];
+          filtered = filtered.filter(m => !allGeneralNews.includes((m.origin || "").toLowerCase()));
         } else if (currentFilter !== 'all') {
           // Handle RSS feed filter from dropdown
           filtered = filtered.filter(m => {
@@ -1256,14 +1284,17 @@ ${articleText}`;
 
       let topNewsCount = 0;
       let localNewsCount = 0;
+      let clientsCount = 0;
 
       for (const m of filtered) {
         let origin = (m.origin || "").toLowerCase();
         if (topNewsOrigins.includes(origin)) {
           topNewsCount++;
-        }
-        if (localNewsOrigins.includes(origin)) {
+        } else if (localNewsOrigins.includes(origin)) {
           localNewsCount++;
+        } else {
+          // Everything else is a client feed
+          clientsCount++;
         }
       }
 
@@ -1273,6 +1304,7 @@ ${articleText}`;
       const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = fmt(val); };
 
       setText('sb-total', total);
+      setText('sb-clients', clientsCount);
       setText('sb-top-news', topNewsCount);
       setText('sb-local-news', localNewsCount);
 
