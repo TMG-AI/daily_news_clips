@@ -2,8 +2,8 @@
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
-  url: process.env.KV2_REST_API_URL,
-  token: process.env.KV2_REST_API_TOKEN,
+  url: process.env.KV3_REST_API_URL,
+  token: process.env.KV3_REST_API_TOKEN,
 });
 
 const ZSET = "mentions:z";
@@ -75,7 +75,6 @@ export default async function handler(req, res) {
 
 Article breakdown by source:
 - Google Alerts: ${originCounts.google_alerts || 0} articles
-- Law360: ${originCounts.law360 || 0} articles
 - Meltwater: ${originCounts.meltwater || 0} articles
 - RSS Feeds: ${originCounts.rss || 0} articles
 - Newsletters: ${originCounts.newsletter || 0} articles
@@ -92,7 +91,7 @@ CITATION REQUIREMENTS:
 
 FORMATTING REQUIREMENTS:
 - Do NOT include title headers like "Weekly Summary:" or "Comprehensive Summary" - start directly with the content
-- Do NOT break content into separate sections by source (Google Alerts, Law360, Meltwater, RSS Feeds, Newsletters) - integrate all sources into unified themes
+- Do NOT break content into separate sections by source (Google Alerts, Meltwater, RSS Feeds, Newsletters) - integrate all sources into unified themes
 - Use **bold text** for key terms and important points
 - Use bullet points (- ) for lists only when listing 3+ related items
 - Keep paragraphs concise (2-3 sentences max)

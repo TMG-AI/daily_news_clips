@@ -1,8 +1,8 @@
 import { Redis } from "@upstash/redis";
 
 const redis = new Redis({
-  url: process.env.KV2_REST_API_URL,
-  token: process.env.KV2_REST_API_TOKEN,
+  url: process.env.KV3_REST_API_URL,
+  token: process.env.KV3_REST_API_TOKEN,
 });
 
 const ZSET = "mentions:z";
@@ -101,7 +101,7 @@ export default async function handler(req, res) {
 
       // Only filter Newsletter articles (newsletter RSS feeds have AI/legal keyword filtering)
       if (origin !== "newsletter" && origin !== "newsletter_rss") {
-        continue; // Skip non-newsletter articles (Google Alerts, Law360, Meltwater are already filtered)
+        continue; // Skip non-newsletter articles (Google Alerts, Meltwater are already filtered)
       }
 
       newsletterCount++;

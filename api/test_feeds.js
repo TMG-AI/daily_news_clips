@@ -24,13 +24,12 @@ export default async function handler(req, res) {
     environment_check: {
       RSS_FEEDS: !!process.env.RSS_FEEDS,
       RSS_FEEDS_length: (process.env.RSS_FEEDS || "").split(/[,;]/).filter(s => s.trim()).length,
-      LAW360_RSS_FEED: !!process.env.LAW360_RSS_FEED,
       NEWSLETTER_RSS_FEEDS: !!process.env.NEWSLETTER_RSS_FEEDS,
       NEWSLETTER_RSS_FEEDS_length: (process.env.NEWSLETTER_RSS_FEEDS || "").split(/[,;]/).filter(s => s.trim()).length,
       MELTWATER_API_KEY: !!process.env.MELTWATER_API_KEY,
       OPENAI_API_KEY: !!process.env.OPENAI_API_KEY,
-      KV2_REST_API_URL: !!process.env.KV2_REST_API_URL,
-      KV2_REST_API_TOKEN: !!process.env.KV2_REST_API_TOKEN
+      KV3_REST_API_URL: !!process.env.KV3_REST_API_URL,
+      KV3_REST_API_TOKEN: !!process.env.KV3_REST_API_TOKEN
     },
     feed_tests: []
   };
@@ -59,30 +58,6 @@ export default async function handler(req, res) {
 
       results.feed_tests.push(test);
     }
-  }
-
-  // Test Law360 feed
-  if (process.env.LAW360_RSS_FEED) {
-    const url = process.env.LAW360_RSS_FEED.trim();
-    const test = {
-      name: 'Law360',
-      url: url.substring(0, 50) + '...', // Truncate for security
-      status: 'pending',
-      error: null,
-      item_count: 0
-    };
-
-    try {
-      const feed = await parser.parseURL(url);
-      test.status = 'success';
-      test.item_count = feed?.items?.length || 0;
-      test.feed_title = feed?.title || 'Unknown';
-    } catch (err) {
-      test.status = 'error';
-      test.error = err?.message || String(err);
-    }
-
-    results.feed_tests.push(test);
   }
 
   // Test Newsletter RSS feeds (just first one to avoid timeout)

@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **Liz Dashboard** - a media monitoring and alerting system that:
-- Collects AI and legal tech news from RSS feeds, Google Alerts, Law360, Meltwater, and newsletters
+This is **Daily News Clips** - a media monitoring and alerting system that:
+- Collects AI and legal tech news from RSS feeds, Google Alerts, Meltwater, and newsletters
 - Educates lawyers on effective AI use in legal practice
 - Tracks new case law and regulatory developments related to AI
 - Stores and deduplicates articles in Redis (Upstash)
@@ -40,8 +40,8 @@ This is **Liz Dashboard** - a media monitoring and alerting system that:
 ## Environment Variables
 
 Required for production:
-- `KV2_REST_API_URL` - Upstash Redis URL (KV2 specific to Liz Dashboard)
-- `KV2_REST_API_TOKEN` - Upstash Redis token (KV2 specific to Liz Dashboard)
+- `KV3_REST_API_URL` - Upstash Redis URL
+- `KV3_REST_API_TOKEN` - Upstash Redis token
 
 Entity-specific RSS feeds (Google Alerts or similar):
 - `RSS_FEED_DELTA_AIR_LINES` - RSS feed URL for Delta Air Lines articles
