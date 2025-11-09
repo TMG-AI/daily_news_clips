@@ -165,7 +165,7 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
   // === ENTITY-SPECIFIC FILTERS ===
 
   // Delta Air Lines: Exclude airplane incidents and new travel routes
-  if (origin === 'delta_air_lines' || origin === 'delta_air_lines_rss') {
+  if (origin === 'delta_air_lines_rss') {
     const incidentKeywords = [
       'incident', 'crash', 'emergency', 'accident', 'diverted', 'grounded',
       'delayed', 'cancellation', 'mechanical issue', 'safety concern',
@@ -187,7 +187,7 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
   }
 
   // Albemarle: Must be about Albemarle Corporation (not Albemarle County, VA or Albemarle, NC)
-  if (origin === 'albemarle' || origin === 'albemarle_rss') {
+  if (origin === 'albemarle_rss') {
     // Geographic false positives to exclude
     const geographicKeywords = [
       'albemarle county',
@@ -224,7 +224,7 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
   // more sophisticated duplicate detection than simple keyword matching
 
   // TikTok: Exclude influencer trends and creator content
-  if (origin === 'tiktok' || origin === 'tiktok_rss') {
+  if (origin === 'tiktok_rss') {
     const influencerKeywords = [
       'tiktok trend',
       'viral tiktok',
@@ -265,12 +265,12 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
   }
 
   // Guardant Health: Accept all news (including stock/financial per instructions)
-  if (origin === 'guardant_health' || origin === 'guardant_health_rss') {
+  if (origin === 'guardant_health_rss') {
     return false; // Accept everything
   }
 
   // StubHub: Exclude ticket buying guides
-  if (origin === 'stubhub' || origin === 'stubhub_rss') {
+  if (origin === 'stubhub_rss') {
     const ticketBuyingKeywords = [
       'how to get tickets',
       'how to buy',
@@ -288,7 +288,7 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
   }
 
   // American Independent Media: Avoid false positives
-  if (origin === 'american_independent_media' || origin === 'american_independent_media_rss') {
+  if (origin === 'american_independent_media_rss') {
     // This phrase gets used in non-related contexts frequently
     // Only keep if it mentions "American Bridge" or specific related entities
     const isRelated = text.includes('american bridge') ||
