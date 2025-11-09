@@ -544,10 +544,16 @@
           const formatClientName = (origin) => {
             if (!origin) return '';
             // Remove _rss suffix and convert underscores to spaces, then title case
-            return origin
+            let displayName = origin
               .replace(/_rss$/, '')
               .replace(/_/g, ' ')
               .replace(/\b\w/g, c => c.toUpperCase());
+
+            // Special capitalization for NYT and WaPo
+            displayName = displayName.replace(/\bNyt\b/g, 'NYT');
+            displayName = displayName.replace(/\bWapo\b/g, 'WaPo');
+
+            return displayName;
           };
 
           // Determine if this is a client feed
@@ -1375,18 +1381,48 @@ ${articleText}`;
       document.getElementById('feed-local').innerHTML = '';
       document.getElementById('feed-clients').innerHTML = '';
 
-      // Populate dropdowns
-      origins.forEach(origin => {
-        const displayName = origin.replace(/_rss$/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-        const option = `<option value="${origin}">${displayName}</option>`;
+      // Helper function to format display names
+      function formatDisplayName(origin) {
+        let displayName = origin.replace(/_rss$/, '').replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 
-        if (generalNews.includes(origin)) {
-          document.getElementById('feed-general').innerHTML += option;
-        } else if (localNews.includes(origin)) {
-          document.getElementById('feed-local').innerHTML += option;
-        } else {
-          document.getElementById('feed-clients').innerHTML += option;
-        }
+        // Special capitalization for NYT and WaPo
+        displayName = displayName.replace(/\bNyt\b/g, 'NYT');
+        displayName = displayName.replace(/\bWapo\b/g, 'WaPo');
+
+        return displayName;
+      }
+
+      // Separate origins by category
+      const generalOrigins = origins.filter(o => generalNews.includes(o));
+      const localOrigins = origins.filter(o => localNews.includes(o));
+      const clientOrigins = origins.filter(o => !generalNews.includes(o) && !localNews.includes(o));
+
+      // Sort client feeds alphabetically
+      clientOrigins.sort((a, b) => {
+        const nameA = formatDisplayName(a);
+        const nameB = formatDisplayName(b);
+        return nameA.localeCompare(nameB);
+      });
+
+      // Populate general news dropdown
+      generalOrigins.forEach(origin => {
+        const displayName = formatDisplayName(origin);
+        const option = `<option value="${origin}">${displayName}</option>`;
+        document.getElementById('feed-general').innerHTML += option;
+      });
+
+      // Populate local news dropdown
+      localOrigins.forEach(origin => {
+        const displayName = formatDisplayName(origin);
+        const option = `<option value="${origin}">${displayName}</option>`;
+        document.getElementById('feed-local').innerHTML += option;
+      });
+
+      // Populate client feeds dropdown (alphabetically sorted)
+      clientOrigins.forEach(origin => {
+        const displayName = formatDisplayName(origin);
+        const option = `<option value="${origin}">${displayName}</option>`;
+        document.getElementById('feed-clients').innerHTML += option;
       });
     }
 
