@@ -300,6 +300,43 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
     }
   }
 
+  // Jim Messina: Exclude musician, only include political consultant
+  if (origin === 'jim_messina_rss') {
+    const jimMessinaText = text.includes('jim messina') || text.includes('messina');
+
+    if (jimMessinaText) {
+      // Musician indicators (filter these out)
+      const musicianKeywords = [
+        'guitar', 'guitarist', 'concert', 'tour', 'touring', 'album', 'music',
+        'band', 'poco', 'loggins', 'loggins and messina', 'musician', 'singer',
+        'song', 'performance', 'setlist', 'venue', 'tickets', 'show', 'gig',
+        'record', 'recording', 'country rock', 'rock band', 'buffalo springfield'
+      ];
+
+      const isMusician = musicianKeywords.some(keyword => text.includes(keyword));
+
+      if (isMusician) {
+        console.log(`Filtering Jim Messina musician article: "${title}"`);
+        return true; // Filter out musician articles
+      }
+
+      // Political consultant indicators (keep these)
+      const politicalKeywords = [
+        'messina group', 'obama', 'campaign', 'politics', 'political',
+        'consultant', 'chief of staff', 'white house', 'democratic',
+        'election', 'strategy', 'strategist', 'biden', 'dnc'
+      ];
+
+      const isPolitical = politicalKeywords.some(keyword => text.includes(keyword));
+
+      if (!isPolitical) {
+        // If it mentions Jim Messina but has no political context, filter it out
+        console.log(`Filtering ambiguous Jim Messina article (no political context): "${title}"`);
+        return true;
+      }
+    }
+  }
+
   // Default: Don't filter
   return false;
 }

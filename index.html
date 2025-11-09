@@ -392,6 +392,124 @@
       loadingSkeletons=[];
     }
 
+    // Story deduplication functions
+    function extractKeywords(text) {
+      if (!text) return new Set();
+
+      // Common words to ignore
+      const stopWords = new Set([
+        'a', 'an', 'and', 'are', 'as', 'at', 'be', 'by', 'for', 'from', 'has', 'he',
+        'in', 'is', 'it', 'its', 'of', 'on', 'that', 'the', 'to', 'was', 'will',
+        'with', 's', 'says', 'said', 'new', 'after', 'over', 'more', 'up', 'out',
+        'about', 'who', 'get', 'which', 'their', 'have', 'had', 'not', 'but', 'his', 'her'
+      ]);
+
+      // Extract words, normalize, and filter
+      const words = text.toLowerCase()
+        .replace(/[^\w\s]/g, ' ') // Remove punctuation
+        .split(/\s+/)
+        .filter(w => w.length > 2 && !stopWords.has(w));
+
+      return new Set(words);
+    }
+
+    function calculateSimilarity(article1, article2) {
+      // Get text for comparison
+      const text1 = `${article1.title || ''} ${getSummaryText(article1)}`;
+      const text2 = `${article2.title || ''} ${getSummaryText(article2)}`;
+
+      const keywords1 = extractKeywords(text1);
+      const keywords2 = extractKeywords(text2);
+
+      if (keywords1.size === 0 || keywords2.size === 0) return 0;
+
+      // Calculate Jaccard similarity (intersection / union)
+      const intersection = new Set([...keywords1].filter(w => keywords2.has(w)));
+      const union = new Set([...keywords1, ...keywords2]);
+
+      return intersection.size / union.size;
+    }
+
+    function getSummaryText(article) {
+      if (!article.summary) return '';
+      if (typeof article.summary === 'string') return article.summary;
+      if (typeof article.summary === 'object') {
+        return article.summary.opening_text ||
+               article.summary.byline ||
+               article.summary.content ||
+               article.summary.description || '';
+      }
+      return '';
+    }
+
+    function isPrioritySource(origin) {
+      const prioritySources = [
+        'nyt_top_news_rss',
+        'wapo_national_news_rss',
+        'wapo_politics_rss',
+        'wapo_local_rss'
+      ];
+      return prioritySources.includes((origin || '').toLowerCase());
+    }
+
+    function deduplicateStories(articles) {
+      if (!articles || articles.length === 0) return articles;
+
+      const SIMILARITY_THRESHOLD = 0.4; // 40% keyword overlap = same story
+      const groups = [];
+      const processed = new Set();
+
+      // Group similar articles
+      for (let i = 0; i < articles.length; i++) {
+        if (processed.has(i)) continue;
+
+        const group = [i];
+        processed.add(i);
+
+        // Find similar articles
+        for (let j = i + 1; j < articles.length; j++) {
+          if (processed.has(j)) continue;
+
+          const similarity = calculateSimilarity(articles[i], articles[j]);
+          if (similarity >= SIMILARITY_THRESHOLD) {
+            group.push(j);
+            processed.add(j);
+          }
+        }
+
+        groups.push(group);
+      }
+
+      // For each group, select the best article
+      const selectedArticles = [];
+
+      for (const group of groups) {
+        if (group.length === 1) {
+          // No duplicates, keep the article
+          selectedArticles.push(articles[group[0]]);
+          continue;
+        }
+
+        // Multiple similar articles - select the best one
+        const groupArticles = group.map(idx => articles[idx]);
+
+        // First, try to find WaPo or NYT article
+        const priorityArticle = groupArticles.find(a => isPrioritySource(a.origin));
+
+        if (priorityArticle) {
+          selectedArticles.push(priorityArticle);
+        } else {
+          // No priority source, keep the earliest published
+          groupArticles.sort((a, b) => new Date(a.published) - new Date(b.published));
+          selectedArticles.push(groupArticles[0]);
+        }
+      }
+
+      console.log(`[Deduplication] ${articles.length} articles → ${selectedArticles.length} unique stories`);
+
+      return selectedArticles;
+    }
+
     function formatDate(s){
       const d=new Date(s);
       return d.toLocaleString('en-US',{year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'2-digit',hour12:true});
@@ -580,6 +698,9 @@
           return new Date(b.published) - new Date(a.published);
         });
 
+        // Deduplicate similar stories
+        filtered = deduplicateStories(filtered);
+
         removeLoadingSkeletons();
 
         const list=document.getElementById('list');
@@ -698,12 +819,36 @@
     document.getElementById('refresh-news-btn').addEventListener('click', async () => {
       const btn = document.getElementById('refresh-news-btn');
       const btnText = document.getElementById('refresh-btn-text');
-      btn.disabled = true; btn.classList.add('loading'); btnText.textContent = 'Loading...';
+      btn.disabled = true; btn.classList.add('loading'); btnText.textContent = 'Collecting fresh articles...';
+
       try {
+        // Trigger RSS collection from all sources
+        const collectionPromises = [
+          fetch('/api/collect', { method: 'GET', cache: 'no-store' }).catch(e => {
+            console.error('RSS collection error:', e);
+            return { ok: false, error: e.message };
+          }),
+          fetch('/api/newsletter_rss_collect', { method: 'GET', cache: 'no-store' }).catch(e => {
+            console.error('Newsletter collection error:', e);
+            return { ok: false, error: e.message };
+          }),
+          fetch('/api/meltwater_collect', { method: 'GET', cache: 'no-store' }).catch(e => {
+            console.error('Meltwater collection error:', e);
+            return { ok: false, error: e.message };
+          })
+        ];
+
+        btnText.textContent = 'Fetching articles...';
+        await Promise.all(collectionPromises);
+
+        // Now reload the dashboard with fresh data
+        btnText.textContent = 'Loading dashboard...';
         await loadMentions();
+
         btnText.textContent = 'Updated!';
         setTimeout(() => { btnText.textContent = 'Get Latest News'; }, 2000);
       } catch (error) {
+        console.error('Refresh error:', error);
         btnText.textContent = 'Error - Try Again';
         setTimeout(() => { btnText.textContent = 'Get Latest News'; }, 3000);
       } finally {
