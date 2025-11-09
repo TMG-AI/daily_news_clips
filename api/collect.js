@@ -341,9 +341,10 @@ export default async function handler(req, res) {
           const feedTitle = feed?.title || url;
 
           for (const e of feed?.items || []) {
-          const title = (e.title || "").trim();
+          // Safely extract title (handle cases where title might be an object)
+          const title = String(e.title || "").trim();
           const ytDesc = e.mediaDescription || e?.media?.description || e?.mediaContent?.description || "";
-          const sum = ytDesc || e.contentSnippet || e.content || e.summary || "";
+          const sum = String(ytDesc || e.contentSnippet || e.content || e.summary || "");
           const link = extractItemLink(e);
           const source = displaySource(link, feedTitle);
 
