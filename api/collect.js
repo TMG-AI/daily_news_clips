@@ -325,6 +325,12 @@ export default async function handler(req, res) {
     // No keyword filtering - RSS feeds are entity-specific
     console.log(`RSS collection starting: ${ALL_FEEDS.length} feeds (${Object.keys(ENTITY_FEEDS).filter(k => ENTITY_FEEDS[k]).length} entities), no keyword filtering`);
 
+    // Debug: Log feed origins to verify POLITICO is included
+    const feedOrigins = ALL_FEEDS.map(f => f.origin);
+    console.log(`Feed origins: ${feedOrigins.join(', ')}`);
+    const hasPolitico = feedOrigins.includes('politico_rss');
+    console.log(`POLITICO in feed list: ${hasPolitico}`);
+
     // Process feeds in parallel batches of 10 to avoid timeout
     const BATCH_SIZE = 10;
     const batches = [];
@@ -340,6 +346,11 @@ export default async function handler(req, res) {
         try {
           const feed = await parser.parseURL(url);
           const feedTitle = feed?.title || url;
+
+          // Debug: Log POLITICO feed processing
+          if (origin === 'politico_rss') {
+            console.log(`[POLITICO DEBUG] Processing POLITICO feed: ${feed?.items?.length || 0} items found`);
+          }
 
           for (const e of feed?.items || []) {
           // Safely extract title (handle cases where title might be an object)
@@ -427,6 +438,11 @@ export default async function handler(req, res) {
           await redis.zremrangebyscore(ZSET, '-inf', cutoffTimestamp);
 
           found++; stored++;
+
+          // Debug: Log POLITICO article storage
+          if (origin === 'politico_rss') {
+            console.log(`[POLITICO DEBUG] Stored POLITICO article: "${title}"`);
+          }
         }
         } catch (err) {
           errors.push({ url, error: err?.message || String(err) });
