@@ -349,28 +349,41 @@ export default async function handler(req, res) {
           const link = extractItemLink(e);
           const source = displaySource(link, feedTitle);
 
-          // Filter out press releases
-          if (isPressRelease(title, sum, source)) {
-            console.log(`Skipping press release: "${title}" from ${source}`);
-            continue;
-          }
+          // Define general/top/local news feeds (NO filtering applied to these)
+          const generalNewsFeeds = [
+            'nyt_top_news_rss',
+            'wapo_national_news_rss',
+            'wapo_politics_rss',
+            'politico_rss',
+            'wapo_local_rss'
+          ];
+          const isGeneralNews = generalNewsFeeds.includes(origin?.toLowerCase());
 
-          // Filter out blocked domains (MFA sites)
-          if (isBlockedDomain(link)) {
-            console.log(`Skipping blocked domain: "${title}" from ${extractDomain(link)}`);
-            continue;
-          }
+          // Only apply filters to CLIENT alert feeds (not general/top/local news)
+          if (!isGeneralNews) {
+            // Filter out press releases
+            if (isPressRelease(title, sum, source)) {
+              console.log(`Skipping press release: "${title}" from ${source}`);
+              continue;
+            }
 
-          // Filter out international articles
-          if (isInternationalArticle(title, sum, link, source)) {
-            console.log(`Skipping international article: "${title}" - ${getBlockReason(title, sum, link, source)}`);
-            continue;
-          }
+            // Filter out blocked domains (MFA sites)
+            if (isBlockedDomain(link)) {
+              console.log(`Skipping blocked domain: "${title}" from ${extractDomain(link)}`);
+              continue;
+            }
 
-          // Apply entity-specific and content quality filters
-          if (shouldFilterArticle(origin, title, sum, source, link)) {
-            console.log(`Skipping filtered article for ${origin}: "${title}"`);
-            continue;
+            // Filter out international articles
+            if (isInternationalArticle(title, sum, link, source)) {
+              console.log(`Skipping international article: "${title}" - ${getBlockReason(title, sum, link, source)}`);
+              continue;
+            }
+
+            // Apply entity-specific and content quality filters
+            if (shouldFilterArticle(origin, title, sum, source, link)) {
+              console.log(`Skipping filtered article for ${origin}: "${title}"`);
+              continue;
+            }
           }
 
           // Check for duplicate stories (same story from different sources)

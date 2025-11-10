@@ -146,12 +146,27 @@ export function isOpinionPiece(title, summary, source, link) {
 /**
  * Enhanced entity-specific content filters
  * Based on client-specific editorial guidelines
+ *
+ * IMPORTANT: Filters only apply to client alert feeds, NOT to general/top/local news feeds
  */
 export function shouldFilterArticle(origin, title, summary, source, link) {
+  // Skip ALL filtering for general/top/local news feeds
+  const generalNewsFeeds = [
+    'nyt_top_news_rss',
+    'wapo_national_news_rss',
+    'wapo_politics_rss',
+    'politico_rss',
+    'wapo_local_rss'
+  ];
+
+  if (generalNewsFeeds.includes(origin?.toLowerCase())) {
+    return false; // Don't filter any general news articles
+  }
+
   const text = `${title} ${summary}`.toLowerCase();
   const titleLower = title.toLowerCase();
 
-  // Apply universal filters first
+  // Apply universal filters (only for client feeds)
   if (isStockPriceFocused(title, summary, source)) {
     console.log(`Filtering stock-focused article: "${title}"`);
     return true;
@@ -162,7 +177,7 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
     return true;
   }
 
-  // === ENTITY-SPECIFIC FILTERS ===
+  // === ENTITY-SPECIFIC FILTERS (Client Feeds Only) ===
 
   // Delta Air Lines: Exclude airplane incidents and new travel routes
   if (origin === 'delta_air_lines_rss') {
