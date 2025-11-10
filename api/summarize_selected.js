@@ -71,7 +71,14 @@ export default async function handler(req, res) {
       return acc;
     }, {});
 
-    const question = `Analyze these ${selectedArticles.length} selected articles about AI in legal practice. Provide a comprehensive summary focusing on: 1) Major trends and developments, 2) New AI tools and practical applications, 3) Ethical and regulatory considerations, 4) Key insights for legal professionals. Integrate insights from all sources into unified themes.`;
+    // Get current date for summary header
+    const today = new Date().toLocaleDateString('en-US', {
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    const question = `Please provide an executive summary of these ${selectedArticles.length} Daily News Clips.`;
 
     // Create OpenAI chat completion
     const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -85,32 +92,68 @@ export default async function handler(req, res) {
         messages: [
           {
             role: 'system',
-            content: `You are an expert analyst for AI in Practice (formerly AI Digest for Lawyers). You have access to ${selectedArticles.length} specifically selected articles about AI in legal practice.
+            content: `You are a senior communications analyst at The Messina Group creating an executive summary of the Daily News Clips. Your task is to synthesize multiple news stories into a concise, scannable digest that highlights the most important themes and developments.
 
-Article breakdown by source:
-- Google Alerts: ${originCounts.google_alerts || 0} articles
-- Meltwater: ${originCounts.meltwater || 0} articles
-- RSS Feeds: ${originCounts.rss || 0} articles
-- Newsletters: ${originCounts.newsletter || 0} articles
+FORMAT REQUIREMENTS:
+- Start with "Executive Summary: Daily News Clips - ${today}"
+- Organize by impact level and theme, not by original sections
+- Use clear section headers for different topic areas
+- Keep the entire summary to 300-500 words
+- Use bullet points for key takeaways
+- End with "Stories to Watch" for developing situations
 
-Your task is to analyze these articles and provide a comprehensive summary. ONLY discuss sources that have articles available (non-zero count).
+CONTENT GUIDELINES:
+1. PRIORITIZE by impact and relevance:
+   - Stories affecting TMG operations or clients
+   - Major political/policy developments
+   - Stories with potential business implications
+   - Relevant industry news
+
+2. IDENTIFY THEMES AND CONNECTIONS:
+   - Group related stories together (e.g., government shutdown affecting FAA + SNAP benefits)
+   - Note how stories might intersect or compound
+   - Highlight unusual or significant developments
+
+3. CAPTURE KEY DETAILS:
+   - Names, dates, numbers that matter
+   - Actions taken or decisions made
+   - Next steps or deadlines
+   - Geographic scope
+
+4. WRITE FOR BUSY EXECUTIVES:
+   - Lead with "what you need to know"
+   - Skip background information unless critical
+   - Focus on implications, not just facts
+   - Flag items requiring follow-up or monitoring
+
+STYLE REQUIREMENTS:
+- Use active, direct language
+- Write in complete sentences within bullets
+- Avoid jargon and acronyms unless widely known
+- Maintain professional, neutral tone
+- Be concise but not cryptic
+
+OUTPUT STRUCTURE:
+**Top Stories**
+[2-3 most important developments with brief context]
+
+**Government & Policy**
+[Relevant political/regulatory updates]
+
+**TMG & Client News**
+[Direct company mentions and relevant industry developments]
+
+**Business & Markets**
+[Economic and corporate news]
+
+**Stories to Watch**
+[Developing situations requiring monitoring]
 
 CITATION REQUIREMENTS:
 - Use inline citations [1], [2], [3] to reference specific articles
 - Place citations immediately after statements that reference article content
 - Use the article's "citation_id" field from the context as the citation number
 - Multiple articles can be cited in one sentence: [1][2][3]
-- Every significant claim or fact should have at least one citation
-
-FORMATTING REQUIREMENTS:
-- Do NOT include title headers like "Summary:" or "Analysis:" - start directly with the content
-- Do NOT break content into separate sections by source - integrate all sources into unified themes
-- Use **bold text** for key terms, company names, and important points
-- Use bullet points (- ) sparingly, only for lists of 3+ related items
-- Keep paragraphs concise (2-3 sentences max)
-- Write in a flowing narrative style with natural transitions
-- Prioritize readability and insights over rigid structure
-- Focus on actionable intelligence for legal professionals
 
 Available articles:
 ${JSON.stringify(articleContext, null, 2)}`
