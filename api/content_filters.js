@@ -310,7 +310,7 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
     return false; // Accept everything
   }
 
-  // StubHub: Exclude ticket buying guides
+  // StubHub: Exclude ticket buying guides and event-focused articles
   if (origin === 'stubhub_rss') {
     const ticketBuyingKeywords = [
       'how to get tickets',
@@ -324,6 +324,54 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
 
     const isTicketGuide = ticketBuyingKeywords.some(keyword => text.includes(keyword));
     if (isTicketGuide) {
+      console.log(`Filtering StubHub ticket buying guide: "${title}"`);
+      return true;
+    }
+
+    // Event-focused content indicators (sports/concerts)
+    const eventFocusedKeywords = [
+      // Sports event indicators
+      'game preview', 'game recap', 'match preview', 'match recap',
+      'starting lineup', 'injury report', 'game day', 'matchup',
+      'vs.', 'vs ', ' v ', ' @ ', // Common game notation (Lakers vs Celtics)
+      'score', 'final score', 'box score', 'play-by-play',
+      'postgame', 'pregame', 'halftime', 'overtime',
+      'wins', 'loses', 'defeats', 'beats',
+      'touchdown', 'home run', 'goal', 'basket',
+      'playoff', 'championship game', 'world series', 'super bowl',
+      'nba game', 'nfl game', 'mlb game', 'nhl game', 'mls game',
+
+      // Concert/music event indicators
+      'concert review', 'concert recap', 'setlist',
+      'performs at', 'performed at', 'performance at',
+      'takes the stage', 'opening act', 'headliner',
+      'tour stops', 'tour date', 'concert venue',
+      'live performance', 'live show', 'sold out show',
+      'encore', 'acoustic set',
+
+      // General event coverage
+      'event recap', 'event review', 'event highlights',
+      'what happened at', 'photos from', 'watch highlights'
+    ];
+
+    // StubHub business indicators (keep these articles)
+    const businessKeywords = [
+      'stubhub', 'fees', 'pricing', 'service charge', 'platform',
+      'marketplace', 'resale', 'secondary market', 'ticket sales',
+      'ticket platform', 'ticket marketplace', 'dynamic pricing',
+      'all-in pricing', 'transparency', 'price guarantee',
+      'ticket protection', 'fanprotect', 'customer service',
+      'refund policy', 'ticket delivery', 'mobile tickets',
+      'stubhub ceo', 'stubhub lawsuit', 'stubhub settlement',
+      'stubhub acquisition', 'stubhub merger', 'stubhub revenue'
+    ];
+
+    const isEventFocused = eventFocusedKeywords.some(keyword => text.includes(keyword));
+    const isBusinessNews = businessKeywords.some(keyword => text.includes(keyword));
+
+    // Filter if it's event-focused AND NOT business news
+    if (isEventFocused && !isBusinessNews) {
+      console.log(`Filtering StubHub event-focused article: "${title}"`);
       return true;
     }
   }
