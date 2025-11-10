@@ -138,16 +138,16 @@ export default async function handler(req, res) {
     const section = (url.searchParams.get("section") || "").trim();
     const q = (url.searchParams.get("q") || "").toLowerCase().trim();
 
-    // 1. Get data from last 7 days from Redis
+    // 1. Get data from last 24 hours from Redis (matches retention policy)
     let redisItems = [];
     try {
       const now = Math.floor(Date.now() / 1000);
-      const sevenDaysAgo = now - (7 * 24 * 60 * 60); // 7 days in seconds
+      const oneDayAgo = now - (24 * 60 * 60); // 24 hours in seconds
 
-      console.log(`Fetching from Redis: ${sevenDaysAgo} to ${now}`);
+      console.log(`Fetching from Redis: ${oneDayAgo} to ${now}`);
 
-      // Use zrange with byScore option to get items from last 7 days
-      const raw = await redis.zrange(ZSET, sevenDaysAgo, now, { byScore: true });
+      // Use zrange with byScore option to get items from last 24 hours
+      const raw = await redis.zrange(ZSET, oneDayAgo, now, { byScore: true });
 
       console.log(`Raw items fetched: ${raw.length}`);
       console.log(`Raw item type: ${typeof raw[0]}`);
@@ -162,7 +162,7 @@ export default async function handler(req, res) {
 
     // 2. Use Redis data only (includes real-time streaming Meltwater data)
     // No API calls needed since webhooks provide real-time data
-    console.log('Using data from last 7 days from Redis');
+    console.log('Using data from last 24 hours from Redis');
     let finalItems = redisItems;
 
     // 3. Apply filters

@@ -102,12 +102,25 @@ FORMAT REQUIREMENTS:
 - Use bullet points for key takeaways
 - End with "Stories to Watch" for developing situations
 
+CONTENT EXCLUSIONS - DO NOT INCLUDE:
+- Stock prices, share prices, or market trading activity
+- Cryptocurrency prices or trading movements (Bitcoin, Ethereum, etc.)
+- Financial market analysis or investment advice
+- Stock analyst ratings or price targets
+- Earnings per share (EPS) or quarterly financial results
+- Opinion pieces, editorials, or commentary
+- Press releases or corporate announcements (unless major news)
+- International news (non-US)
+- Airline route announcements or flight schedules
+- Social media trends or influencer content
+- Ticket prices or buying guides
+
 CONTENT GUIDELINES:
 1. PRIORITIZE by impact and relevance:
    - Stories affecting TMG operations or clients
    - Major political/policy developments
-   - Stories with potential business implications
-   - Relevant industry news
+   - Stories with potential business implications (NOT stock prices)
+   - Relevant industry news (NOT financial markets)
 
 2. IDENTIFY THEMES AND CONNECTIONS:
    - Group related stories together (e.g., government shutdown affecting FAA + SNAP benefits)

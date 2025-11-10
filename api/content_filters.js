@@ -42,6 +42,18 @@ export function isStockPriceFocused(title, summary, source) {
     'after-hours trading'
   ];
 
+  // Cryptocurrency keywords - financial trading content to exclude
+  const cryptoKeywords = [
+    'bitcoin', 'btc', 'ethereum', 'eth', 'crypto', 'cryptocurrency',
+    'dogecoin', 'doge', 'ripple', 'xrp', 'litecoin', 'ltc',
+    'blockchain price', 'altcoin', 'token price', 'crypto market',
+    'crypto price', 'crypto trading', 'digital currency', 'digital asset',
+    'coinbase', 'binance', 'crypto exchange', 'nft price',
+    'crypto soars', 'crypto plunges', 'crypto drops', 'crypto rises',
+    'crypto surge', 'crypto falls', 'crypto hits', 'crypto rallies',
+    'bitcoin hits', 'ethereum hits', 'token hits'
+  ];
+
   // Financial news sources that often focus on stock prices
   const financialSources = [
     'morningstar',
@@ -56,6 +68,7 @@ export function isStockPriceFocused(title, summary, source) {
   ];
 
   const hasStockKeywords = stockKeywords.some(keyword => text.includes(keyword));
+  const hasCryptoKeywords = cryptoKeywords.some(keyword => text.includes(keyword));
   const isFinancialSource = financialSources.some(src =>
     source.toLowerCase().includes(src)
   );
@@ -63,6 +76,11 @@ export function isStockPriceFocused(title, summary, source) {
   // Filter if it has stock keywords AND is from a financial source
   // Or if the title is clearly about stock movement
   if (hasStockKeywords && isFinancialSource) {
+    return true;
+  }
+
+  // Filter if it has crypto keywords (from any source)
+  if (hasCryptoKeywords) {
     return true;
   }
 
