@@ -190,13 +190,21 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
     const routeKeywords = [
       'new route', 'adds service', 'launches flight', 'new destination',
       'expands service', 'adds flight', 'inaugural flight', 'direct flight to',
-      'nonstop service', 'new nonstop', 'announces service', 'begins service'
+      'nonstop service', 'new nonstop', 'announces service', 'begins service',
+      'new service to', 'daily flights to', 'seasonal flights',
+      'expanding service', 'adding service', 'route expansion', 'flight schedule',
+      'begins flying', 'starts flying', 'will fly to', 'flying to'
     ];
 
     const hasIncident = incidentKeywords.some(keyword => text.includes(keyword));
     const hasRoute = routeKeywords.some(keyword => text.includes(keyword));
 
-    if (hasIncident || hasRoute) {
+    if (hasIncident) {
+      console.log(`Filtering Delta incident article: "${title}"`);
+      return true;
+    }
+    if (hasRoute) {
+      console.log(`Filtering Delta route article: "${title}"`);
       return true;
     }
   }
