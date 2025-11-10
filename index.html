@@ -753,6 +753,9 @@
         btnText.textContent = 'Loading dashboard...';
         await loadMentions();
 
+        // Refresh stats and timestamp
+        await Promise.all([refreshStats(), refreshTimestamp()]);
+
         btnText.textContent = 'Updated!';
         setTimeout(() => { btnText.textContent = 'Get Latest News'; }, 2000);
       } catch (error) {
@@ -763,6 +766,71 @@
         btn.disabled = false; btn.classList.remove('loading');
       }
     });
+
+    // Refresh stats cards
+    async function refreshStats() {
+      try {
+        const res = await fetch('/api/get_mentions?limit=10000', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP '+res.status);
+        const data = await res.json();
+
+        // Filter to last 24 hours only
+        const now = Date.now();
+        const oneDayAgo = now - (24 * 60 * 60 * 1000);
+        const filtered = Array.isArray(data) ? data.filter(m => {
+          const ts = new Date(m.published).getTime();
+          return ts >= oneDayAgo;
+        }) : [];
+
+        // Calculate counts
+        const topNewsOrigins = ['nyt_top_news_rss', 'wapo_national_news_rss', 'wapo_politics_rss', 'politico_rss'];
+        const localNewsOrigins = ['wapo_local_rss'];
+
+        const topNewsCount = filtered.filter(m => topNewsOrigins.includes((m.origin || "").toLowerCase())).length;
+        const localNewsCount = filtered.filter(m => localNewsOrigins.includes((m.origin || "").toLowerCase())).length;
+        const clientsCount = filtered.filter(m => {
+          const origin = (m.origin || "").toLowerCase();
+          return !topNewsOrigins.includes(origin) && !localNewsOrigins.includes(origin) && origin;
+        }).length;
+        const total = topNewsCount + localNewsCount + clientsCount;
+
+        const fmt = (n) => (typeof n === 'number' && Number.isFinite(n) && n.toLocaleString) ? n.toLocaleString() : (n ?? '0');
+        const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = fmt(val); };
+
+        setText('sb-total', total);
+        setText('sb-clients', clientsCount);
+        setText('sb-top-news', topNewsCount);
+        setText('sb-local-news', localNewsCount);
+      } catch(e) {
+        console.error('Error refreshing stats:', e);
+      }
+    }
+
+    // Refresh timestamp
+    async function refreshTimestamp() {
+      try {
+        const res = await fetch('/api/get_mentions?limit=1', { cache: 'no-store' });
+        if (!res.ok) throw new Error('HTTP '+res.status);
+        const data = await res.json();
+
+        if (Array.isArray(data) && data.length > 0) {
+          const mostRecent = data[0];
+          const timestamp = new Date(mostRecent.published);
+
+          const etTime = timestamp.toLocaleString('en-US', {
+            timeZone: 'America/New_York',
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+          });
+
+          const el = document.getElementById('header-last-updated');
+          if (el) el.textContent = `${etTime} ET`;
+        }
+      } catch(e) {
+        console.error('Error refreshing timestamp:', e);
+      }
+    }
 
     // AI Chat function
     async function askAI() {
@@ -1348,91 +1416,10 @@ ${articleText}`;
       loadMentions();
     }
 
-    // Initialize
+    // Initialize: load articles, stats, and timestamp on page load
     loadMentions();
-  </script>
-
-  <!-- Summary data loading only -->
-  <script>
-  (async function(){
-    try{
-      // Fetch data from last 24 hours
-      const res = await fetch('/api/get_mentions?limit=10000', { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP '+res.status);
-      const data = await res.json();
-
-      // Filter to last 24 hours only
-      const now = Date.now();
-      const oneDayAgo = now - (24 * 60 * 60 * 1000);
-      const filtered = Array.isArray(data) ? data.filter(m => {
-        const ts = new Date(m.published).getTime();
-        return ts >= oneDayAgo;
-      }) : [];
-
-      // Calculate counts
-      const topNewsOrigins = ['nyt_top_news_rss', 'wapo_national_news_rss', 'wapo_politics_rss', 'politico_rss'];
-      const localNewsOrigins = ['wapo_local_rss'];
-
-      let topNewsCount = 0;
-      let localNewsCount = 0;
-      let clientsCount = 0;
-
-      for (const m of filtered) {
-        let origin = (m.origin || "").toLowerCase();
-        if (topNewsOrigins.includes(origin)) {
-          topNewsCount++;
-        } else if (localNewsOrigins.includes(origin)) {
-          localNewsCount++;
-        } else {
-          // Everything else is a client feed
-          clientsCount++;
-        }
-      }
-
-      const total = filtered.length;
-
-      const fmt = (n) => (typeof n === 'number' && Number.isFinite(n) && n.toLocaleString) ? n.toLocaleString() : (n ?? '0');
-      const setText = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = fmt(val); };
-
-      setText('sb-total', total);
-      setText('sb-clients', clientsCount);
-      setText('sb-top-news', topNewsCount);
-      setText('sb-local-news', localNewsCount);
-
-    } catch(e) {
-      console.error('Error loading summary:', e);
-    }
-  })();
-  </script>
-
-  <!-- Last Updated timestamp loader -->
-  <script>
-  (async function(){
-    try{
-      const res = await fetch('/api/get_mentions?limit=1', { cache: 'no-store' });
-      if (!res.ok) throw new Error('HTTP '+res.status);
-      const data = await res.json();
-
-      if (Array.isArray(data) && data.length > 0) {
-        // Get the most recent article's timestamp
-        const mostRecent = data[0];
-        const timestamp = new Date(mostRecent.published);
-
-        // Format in Eastern Time - short format for header
-        const etTime = timestamp.toLocaleString('en-US', {
-          timeZone: 'America/New_York',
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true
-        });
-
-        const el = document.getElementById('header-last-updated');
-        if (el) el.textContent = `${etTime} ET`;
-      }
-    } catch(e) {
-      console.error('Error loading last updated time:', e);
-    }
-  })();
+    refreshStats();
+    refreshTimestamp();
   </script>
 
 <script>
