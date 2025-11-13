@@ -501,38 +501,6 @@ export function shouldFilterArticle(origin, title, summary, source, link) {
     }
   }
 
-  // Skydance: Filter routine production announcements, keep major corporate news
-  if (origin === 'skydance_rss') {
-    const productionKeywords = [
-      'tv show', 'tv series', 'new series', 'series premiere',
-      'film premiere', 'movie premiere', 'premiere date',
-      'season premiere', 'season finale', 'episode',
-      'cast announcement', 'casting', 'stars in',
-      'streaming on', 'available on', 'watch on',
-      'renewal', 'renewed for', 'canceled', 'cancelled',
-      'trailer', 'teaser', 'first look',
-      'setlist', 'filming', 'production begins'
-    ];
-
-    const corporateKeywords = [
-      'merger', 'acquisition', 'ceo', 'paramount',
-      'layoffs', 'employees', 'return to office', 'rto',
-      'investigation', 'congressional', 'lawsuit', 'settlement',
-      'stock', 'shares', 'nasdaq', 'earnings',
-      'funding', 'investment', 'valuation',
-      'partnership', 'deal', 'agreement', 'contract'
-    ];
-
-    const isProductionAnnouncement = productionKeywords.some(keyword => text.includes(keyword));
-    const isCorporateNews = corporateKeywords.some(keyword => text.includes(keyword));
-
-    // Filter if it's a production announcement AND NOT corporate news
-    if (isProductionAnnouncement && !isCorporateNews) {
-      console.log(`Filtering Skydance production announcement: "${title}"`);
-      return true;
-    }
-  }
-
   // American Independent Media: Avoid false positives
   if (origin === 'american_independent_media_rss') {
     // This phrase gets used in non-related contexts frequently
